@@ -3,7 +3,7 @@ use interoptopus::{ffi_function, function, Inventory, InventoryBuilder};
 #[ffi_function]
 fn do_math(x: u32) -> u32 {
     // Change this line, run `cargo build` and click `Hot Reload` in Unity
-    x + 1
+    x + 7
 }
 
 #[rustfmt::skip]
@@ -29,5 +29,5 @@ fn bindings_csharp() {
         ..Config::default()
     };
 
-    Generator::new(config, inventory).write_file("unity/Assets/MyRustLib/Interop.cs").unwrap();
+    Generator::new(config, inventory).write_file("bindings/Interop.cs").unwrap();
 }

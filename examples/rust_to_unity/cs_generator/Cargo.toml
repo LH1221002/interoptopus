@@ -1,0 +1,13 @@
+[package]
+name = "cs_generator"
+version = "0.1.1"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[build-dependencies]
+interoptopus = { path = "../../../crates/core" }
+interoptopus_backend_csharp = { path = "../../../crates/backend_csharp" }
+rust_bindings = { path = "../rust_bindings" }

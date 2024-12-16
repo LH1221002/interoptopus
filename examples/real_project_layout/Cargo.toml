@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 
 [lib]
+path = "core_library_ffi_build/build.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

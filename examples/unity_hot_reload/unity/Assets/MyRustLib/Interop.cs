@@ -12,7 +12,7 @@ namespace My.Company
 {
     public static partial class InteropClass
     {
-        public const string NativeLib = "unity_hot_reload";
+        public const string NativeLib = "unity_hot_reload.304303941";
 
         static InteropClass()
         {

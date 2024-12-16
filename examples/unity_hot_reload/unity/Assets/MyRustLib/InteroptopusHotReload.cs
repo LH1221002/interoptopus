@@ -14,7 +14,7 @@ namespace Interoptopus.Utils
     {
         private const string DllName = @"unity_hot_reload";
         private const string SourceDll = @"../../../target/debug";
-        private const string SourceInteropRoot = @"../bindings/csharp";
+        private const string SourceInteropRoot = @"../bindings";
         private static readonly string[] InteropFiles = {
             @"Interop.cs",
         };
@@ -59,6 +59,7 @@ namespace Interoptopus.Utils
         static void Init()
         {
             UpdateInteropFiles();
+            AssetDatabase.Refresh();
         }
     }
   

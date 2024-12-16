@@ -1,0 +1,12 @@
+[package]
+name = "rust_bindings"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+rust_library = { path = "../rust_library" }
+interoptopus = { path = "../../../crates/core" }

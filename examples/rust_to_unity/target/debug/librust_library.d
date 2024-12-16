@@ -1,0 +1,1 @@
+C:\Users\luish\interoptopus\examples\rust_to_unity\target\debug\librust_library.rlib: C:\Users\luish\interoptopus\examples\rust_to_unity\rust_library\src\engine.rs C:\Users\luish\interoptopus\examples\rust_to_unity\rust_library\src\lib.rs
