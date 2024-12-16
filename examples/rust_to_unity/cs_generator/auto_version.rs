@@ -50,9 +50,11 @@ fn increment_version(version: &str) -> Result<String, &'static str> {
     Ok(format!("{}.{}.{}", major, minor, patch))
 }
 
-pub fn copy_with_version(source_dir: &str, output_dir: &str, file_name: &str, version: &str) -> io::Result<()> {
+pub fn copy_with_version(source_dir: &str, output_dir: &str, file_name: &str, version: &str) -> io::Result<String> {
     let dll_file = format!("{}.dll", file_name);
     let so_file = format!("{}.so", file_name);
+
+    let target_base_name = format!("{}_{}", file_name, version);
 
     for file_name in &[dll_file, so_file] {
         let source_path = Path::new(source_dir).join(file_name);
@@ -62,13 +64,11 @@ pub fn copy_with_version(source_dir: &str, output_dir: &str, file_name: &str, ve
         }
 
         if let Some(extension) = Path::new(file_name).extension() {
-            if let Some(stem) = Path::new(file_name).file_stem() {
-                let output_path = Path::new(output_dir).join(format!("{}{}.{}", stem.to_string_lossy(), version, extension.to_string_lossy()));
-                fs::copy(&source_path, &output_path)?;
-                println!("Copied {} to {}", source_path.display(), output_path.display());
-            }
+            let output_path = Path::new(output_dir).join(format!("{}.{}", target_base_name, extension.to_string_lossy()));
+            fs::copy(&source_path, &output_path)?;
+            println!("Copied {} to {}", source_path.display(), output_path.display());
         }
     }
 
-    Ok(())
+    Ok(target_base_name)
 }

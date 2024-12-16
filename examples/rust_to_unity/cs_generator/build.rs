@@ -1,8 +1,9 @@
 mod auto_version;
 use crate::auto_version::{copy_with_version, update_and_get_version};
+use interoptopus::util::NamespaceMappings;
 use interoptopus::Interop;
 use interoptopus_backend_csharp::overloads::DotNet;
-use interoptopus_backend_csharp::{ConfigBuilder, Generator};
+use interoptopus_backend_csharp::{Config, Generator};
 use rust_bindings::ffi_inventory;
 
 // By adding the interop generation logic into a `build.rs` that depends on
@@ -19,21 +20,31 @@ const DLL_DEST: &str = "C:/Users/luish/Rust/Assets/Plugins/";
 const OUT_DIR: &str = "C:/Users/luish/Rust/Assets/InteropScripts";
 
 fn main() {
-    match update_and_get_version() {
+    let lib_name = match update_and_get_version() {
         Ok(version) => {
             println!("Current version: {}", version);
-            if let Err(e) = copy_with_version(DLL_SOURCE, DLL_DEST, DLL_FILE, &version) {
+            copy_with_version(DLL_SOURCE, DLL_DEST, DLL_FILE, &version).unwrap_or_else(|e| {
                 eprintln!("Failed to copy files: {}", e);
-            }
+                "Failed to copy files".to_string()
+            })
         }
-        Err(e) => eprintln!("Failed to update version: {}", e),
-    }
+        Err(e) => {
+            eprintln!("Failed to update version: {}", e);
+            "Failed to update version".to_string()
+        }
+    };
 
-    println!("Creating Interop.cs in {}", OUT_DIR);
+    println!("Creating Interop.cs in {} for {}", OUT_DIR, &lib_name);
 
     let inventory = ffi_inventory();
     let overload = DotNet::new().build();
-    let config = ConfigBuilder::default().build().unwrap();
+    // let config = ConfigBuilder::default().build().unwrap();
+    let config = Config {
+        class: "Interop".to_string(),
+        dll_name: lib_name, // TODO: so file handling
+        namespace_mappings: NamespaceMappings::new("InteropScripts"),
+        ..Config::default()
+    };
 
     Generator::new(config, inventory)
         .add_overload_writer(overload)
