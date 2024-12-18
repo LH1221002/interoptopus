@@ -14,12 +14,14 @@ mod basic3;
 mod custom_forces3;
 #[path = "./elasticity3.rs"]
 mod elasticity3;
-#[path = "./faucet3.rs"]
-mod faucet3;
+// #[path = "./faucet3.rs"]
+// mod faucet3;
 #[path = "./heightfield3.rs"]
 mod heightfield3;
 #[path = "./surface_tension3.rs"]
 mod surface_tension3;
+#[path = "./faucet3_original.rs"]
+mod faucet3_original;
 
 fn demo_name_from_command_line() -> Option<String> {
     let mut args = std::env::args();
@@ -62,7 +64,7 @@ pub fn main() {
         ("Height field", heightfield3::init_world),
         ("Custom Forces", custom_forces3::init_world),
         ("Elasticity", elasticity3::init_world),
-        ("Faucet", faucet3::init_world), //FIXME: bug with adding & removing particles
+        ("Faucet", faucet3_original::init_world), //FIXME: bug with adding & removing particles
         ("Surface tension", surface_tension3::init_world),
     ];
 
