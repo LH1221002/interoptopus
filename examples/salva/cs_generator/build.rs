@@ -20,6 +20,16 @@ const DLL_DEST: &str = "C:/Users/luish/Rust/Assets/Plugins/";
 const OUT_DIR: &str = "C:/Users/luish/Rust/Assets/InteropScripts";
 
 fn main() {
+    let build_script_active = std::env::var("CARGO_FEATURE_BUILD_SCRIPT").is_ok();
+
+    if !build_script_active {
+        // Print all arguments
+        println!("Skipping build script tasks...");
+        return;
+    }
+
+    println!("Performing build script tasks...");
+
     let lib_name = match update_and_get_version() {
         Ok(version) => {
             println!("Current version: {}", version);
