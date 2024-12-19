@@ -1,0 +1,20 @@
+[package]
+name = "rust_bindings"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+Inflector = "0.11"
+nalgebra = "0.33"
+rapier3d = "0.21"
+parry3d = "0.16"
+rust_library = { path = "../rust_library" }
+interoptopus = { path = "../../../crates/core" }
+
+[dependencies.salva3d]
+git = "https://github.com/dimforge/salva.git"
+features = ["rapier", "sampling"]

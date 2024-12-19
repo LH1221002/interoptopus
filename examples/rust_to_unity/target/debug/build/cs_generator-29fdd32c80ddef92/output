@@ -1,5 +1,5 @@
-Updated auto_version.txt to version 0.0.14
-Current version: 0.0.14
-Copied ../target/debug/rust_bindings.dll to C:/Users/luish/Rust/Assets/Plugins/rust_bindings_0.0.14.dll
+Updated auto_version.txt to version 0.0.113
+Current version: 0.0.113
+Copied ../target/debug/rust_bindings.dll to C:/Users/luish/Rust/Assets/Plugins/rust_bindings_0.0.113.dll
 File rust_bindings.so does not exist in the source directory
-Creating Interop.cs in C:/Users/luish/Rust/Assets/InteropScripts for rust_bindings_0.0.14
+Creating Interop.cs in C:/Users/luish/Rust/Assets/InteropScripts for rust_bindings_0.0.113

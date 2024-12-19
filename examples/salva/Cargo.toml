@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "rust_library",
+    "rust_bindings",
+    "cs_generator"   # Has to be built after rust_bindings
+]
+resolver = "2"
+
+[workspace.dependencies]
+derive_builder = "0.20.2"
+heck = "0.5.0"
+log = "0.4.14"
+serde = "1.0.203"

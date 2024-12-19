@@ -19,7 +19,7 @@ mod helper;
 const PARTICLE_RADIUS: f32 = 0.025 / 2.0;
 const SMOOTHING_FACTOR: f32 = 2.0;
 
-fn main() {
+fn mainn() {
     // Gravity and integration parameters.
     let gravity = Vector3::y() * -9.81;
     let dt = 1.0 / 50.0; // Fixed timestep for simplicity.
