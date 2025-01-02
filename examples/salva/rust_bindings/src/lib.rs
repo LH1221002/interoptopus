@@ -6,6 +6,7 @@ pub mod error;
 pub mod math;
 pub mod fluid;
 pub mod fluids_pipeline;
+mod global_index;
 
 // As in `engine`, we create matching functions that are better suited for an FFI boundary.
 #[ffi_function]

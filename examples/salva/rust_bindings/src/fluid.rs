@@ -6,10 +6,19 @@ use salva3d::math::Translation;
 use salva3d::object::interaction_groups::InteractionGroups;
 use salva3d::solver::{Akinci2013SurfaceTension, XSPHViscosity};
 use crate::fluids_pipeline::FluidsPipeline;
+use crate::global_index::GLOBAL_FLUIDS;
 
 #[ffi_type(opaque)]
 pub struct Fluid {
     pub fluid: salva3d::object::Fluid,
+}
+
+impl Default for Fluid {
+    fn default() -> Self {
+        Self {
+            fluid: salva3d::object::Fluid::new(Vec::new(), 0.0, 0.0, InteractionGroups::default()),
+        }
+    }
 }
 
 #[ffi_service(error = "FFIError")]
@@ -29,6 +38,18 @@ impl Fluid {
         fluid.nonpressure_forces.push(Box::new(tension));
         
         Ok(Self { fluid })
+    }
+
+    pub fn move_to_global_ownership(&mut self) -> Result<(), Error> {
+        let fluid = std::mem::take(self);
+        GLOBAL_FLUIDS.lock().unwrap().push(fluid);
+        Ok(())
+    }
+
+    pub fn move_to_pipeline_ownership(&mut self, pipeline: &mut FluidsPipeline) -> Result<(), Error> {
+        let fluid = std::mem::take(self);
+        pipeline.pipeline.liquid_world.add_fluid(fluid.fluid);
+        Ok(())
     }
 
     #[ffi_service_method(on_panic = "return_default")]

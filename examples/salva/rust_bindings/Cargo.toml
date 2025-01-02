@@ -14,6 +14,7 @@ rapier3d = "0.21"
 parry3d = "0.16"
 rust_library = { path = "../rust_library" }
 interoptopus = { path = "../../../crates/core" }
+once_cell = "1.20.2"
 
 [dependencies.salva3d]
 git = "https://github.com/dimforge/salva.git"

@@ -10,6 +10,7 @@ use salva3d::integrations::rapier::ColliderSampling;
 use salva3d::object::Boundary;
 use salva3d::sampling::shape_surface_ray_sample;
 use crate::fluid::Fluid;
+use crate::global_index::GLOBAL_FLUIDS;
 
 #[ffi_type(opaque)]
 pub struct FluidsPipeline {
@@ -41,9 +42,15 @@ impl FluidsPipeline {
 
         Ok(Self { pipeline, colliders, bodies })
     }
+    
+    pub fn add_fluid(&mut self, fluid_idx: u32) {
+        if let Some(fluid) = GLOBAL_FLUIDS.lock().unwrap().get_mut(fluid_idx as usize) {
+            let fluid = std::mem::take(fluid);
+            self.pipeline.liquid_world.add_fluid(fluid.fluid);
+        }
+    }
 
-    // pub fn add_fluid(&mut self, fluid: Fluid) -> Result<(), Error> {
-    //     // let fluid = fluid.into_native();
+    // pub fn add_fluid(&mut self, fluid: &Fluid) -> Result<(), Error> {
     //     self.pipeline.liquid_world.add_fluid(fluid.fluid);
     //     Ok(())
     // }
