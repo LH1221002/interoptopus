@@ -1,22 +1,24 @@
-use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
-use rapier3d::geometry::{ColliderBuilder, ColliderSet};
-use salva3d::object::interaction_groups::InteractionGroups;
+use std::f32::consts::E;
 use crate::error::{Error, FFIError};
-use crate::math::{Point3, Vec3};
-use interoptopus::{ffi_type, ffi_service, ffi_service_ctor, ffi_service_method};
-use interoptopus::patterns::slice::FFISlice;
-use rapier3d::math::Vector;
-use salva3d::integrations::rapier::ColliderSampling;
-use salva3d::object::Boundary;
-use salva3d::sampling::shape_surface_ray_sample;
 use crate::fluid::Fluid;
 use crate::global_index::GLOBAL_FLUIDS;
+use crate::math::{Point3, Vec3};
+use interoptopus::patterns::slice::{FFISlice, FFISliceMut};
+use interoptopus::{ffi_service, ffi_service_ctor, ffi_service_method, ffi_type};
+use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
+use rapier3d::geometry::{ColliderBuilder, ColliderSet};
+use rapier3d::math::Vector;
+use salva3d::integrations::rapier::ColliderSampling;
+use salva3d::object::interaction_groups::InteractionGroups;
+use salva3d::object::Boundary;
+use salva3d::sampling::shape_surface_ray_sample;
 
 #[ffi_type(opaque)]
 pub struct FluidsPipeline {
     pub pipeline: salva3d::integrations::rapier::FluidsPipeline,
     colliders: rapier3d::geometry::ColliderSet,
     bodies: rapier3d::dynamics::RigidBodySet,
+    fluid_handles: Vec<salva3d::object::FluidHandle>,
 }
 
 #[ffi_service(error = "FFIError")]
@@ -40,20 +42,94 @@ impl FluidsPipeline {
             .coupling
             .register_coupling(bo_handle, co_handle, ColliderSampling::StaticSampling(ball_samples));
 
-        Ok(Self { pipeline, colliders, bodies })
+        Ok(Self {
+            pipeline,
+            colliders,
+            bodies,
+            fluid_handles: vec![],
+        })
     }
-    
-    pub fn add_fluid(&mut self, fluid_idx: u32) {
-        if let Some(fluid) = GLOBAL_FLUIDS.lock().unwrap().get_mut(fluid_idx as usize) {
-            let fluid = std::mem::take(fluid);
-            self.pipeline.liquid_world.add_fluid(fluid.fluid);
+
+    // pub fn add_fluid(&mut self, fluid_idx: u32) {
+    //     if let Some(fluid) = GLOBAL_FLUIDS.lock().unwrap().get_mut(fluid_idx as usize) {
+    //         let fluid = std::mem::take(fluid);
+    //         self.pipeline.liquid_world.add_fluid(fluid.fluid);
+    //     }
+    // }
+
+    #[ffi_service_method(ignore)]
+    pub fn add_fluid(&mut self, fluid: Fluid) -> u32 {
+        let handle = self.pipeline.liquid_world.add_fluid(fluid.fluid);
+        self.fluid_handles.push(handle);
+        self.fluid_handles.len() as u32 - 1
+    }
+
+    fn get_fluid(&mut self, fluid_idx: u32) -> Result<&mut salva3d::object::Fluid, Error> {
+        if let Some(handle) = self.fluid_handles.get(fluid_idx as usize) {
+            if let Some(fluid) = self.pipeline.liquid_world.fluids_mut().get_mut(*handle) {
+                Ok(fluid)
+            } else {
+                // Err(Error::new("Fluid handle not found in liquid world"))
+                Err(Error::Bad)
+            }
+        } else {
+            // Err(Error::new("Invalid fluid index"))
+            Err(Error::Bad)
         }
     }
 
-    // pub fn add_fluid(&mut self, fluid: &Fluid) -> Result<(), Error> {
-    //     self.pipeline.liquid_world.add_fluid(fluid.fluid);
-    //     Ok(())
-    // }
+    pub fn add_particles(&mut self, fluid_idx: u32, positions: FFISlice<Point3>, velocities: FFISlice<Vec3>) -> Result<(), Error> {
+        match self.get_fluid(fluid_idx) {
+            Ok(fluid) => {
+                let positions_native = positions.iter().map(|p| p.into_native()).collect::<Vec<_>>();
+                let velocities_native = if velocities.len() == positions.len() {
+                    Some(velocities.iter().map(|v| v.into_native()).collect::<Vec<_>>())
+                } else {
+                    None
+                };
+                fluid.add_particles(&*positions_native, velocities_native.as_deref());
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    #[ffi_service_method(on_panic = "return_default")]
+    pub fn num_particles(&mut self, fluid_idx: u32) -> u32 {
+        match self.get_fluid(fluid_idx) {
+            Ok(fluid) => {fluid.num_particles() as u32 }
+            Err(_) => { 0 }
+        }
+    }
+
+    pub fn positions(&mut self, fluid_idx: u32, mut out_vec: FFISliceMut<Point3>) -> Result<(), Error> {
+        match self.get_fluid(fluid_idx) {
+            Ok(fluid) => {
+                for (i, p) in fluid.positions.iter().enumerate() {
+                    out_vec[i] = Point3::from_native(p);
+                }
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn delete_particle_at_next_timestep(&mut self, fluid_idx: u32, particle: u32) -> Result<(), Error> {
+        match self.get_fluid(fluid_idx) {
+            Ok(fluid) => {
+                if particle < fluid.num_particles() as u32 {
+                    fluid.delete_particle_at_next_timestep(particle as usize);
+                    Ok(())
+                } else {
+                    // Err(Error::Other("Particle index out of bounds".to_string()))
+                    Err(Error::Bad)
+                }
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+
 
     // #[ffi_service_method(on_panic = "return_default")]
     pub fn step(

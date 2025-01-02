@@ -1,6 +1,8 @@
 use nalgebra::UnitQuaternion;
 use salva3d::math::Real;
-use interoptopus::ffi_type;
+use interoptopus::{ffi_service, ffi_service_ctor, ffi_type};
+use crate::error::{Error, FFIError};
+use crate::fluids_pipeline::FluidsPipeline;
 
 #[ffi_type]
 #[derive(Copy, Clone)]
@@ -58,7 +60,8 @@ impl Point3 {   // TODO: Maybe use surrogate types for this conversion, more eff
         salva3d::math::Vector::new(self.x, self.y, self.z)
     }
 
-    pub fn from_native(p: salva3d::math::Point<Real>) -> Self {
+    pub fn from_native(p: &salva3d::math::Point<Real>) -> Self {
         Self { x: p.x, y: p.y, z: p.z }
     }
 }
+

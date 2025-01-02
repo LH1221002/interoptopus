@@ -46,10 +46,10 @@ impl Fluid {
         Ok(())
     }
 
-    pub fn move_to_pipeline_ownership(&mut self, pipeline: &mut FluidsPipeline) -> Result<(), Error> {
+    #[ffi_service_method(on_panic = "return_default")]
+    pub fn move_to_pipeline_ownership(&mut self, pipeline: &mut FluidsPipeline) -> u32 {
         let fluid = std::mem::take(self);
-        pipeline.pipeline.liquid_world.add_fluid(fluid.fluid);
-        Ok(())
+        pipeline.add_fluid(fluid)
     }
 
     #[ffi_service_method(on_panic = "return_default")]
@@ -79,7 +79,7 @@ impl Fluid {
     ) -> Result<(), Error> {
         let native_positions = positions.iter().map(|p| p.into_native()).collect::<Vec<_>>();
 
-        let native_velocities = if velocities.len() != positions.len() {
+        let native_velocities = if velocities.len() == positions.len() {
             Some(velocities.iter().map(|v| v.into_native()).collect::<Vec<_>>())
         } else {
             None
