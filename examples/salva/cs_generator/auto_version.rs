@@ -35,6 +35,20 @@ pub fn update_and_get_version() -> io::Result<String> {
     }
 }
 
+pub fn get_version() -> io::Result<String> {
+    let file_path = "auto_version.txt";
+
+    if !Path::new(file_path).exists() {
+        return Err(io::Error::new(io::ErrorKind::NotFound, "Version file not found"));
+    }
+
+    let mut file = File::open(file_path)?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+
+    Ok(content)
+}
+
 fn increment_version(version: &str) -> Result<String, &'static str> {
     let parts: Vec<&str> = version.trim().split('.').collect();
     if parts.len() != 3 {
@@ -50,16 +64,22 @@ fn increment_version(version: &str) -> Result<String, &'static str> {
     Ok(format!("{}.{}.{}", major, minor, patch))
 }
 
-pub fn copy_with_version(source_dir: &str, output_dir: &str, file_name: &str, version: &str) -> io::Result<String> {
+pub fn copy_with_version(source_dir: &str, output_dir: &str, file_name: &str, version: &str, diff_source_name: Option<&str>) -> io::Result<String> {
     let dll_file = format!("{}.dll", file_name);
     let so_file = format!("{}.so", file_name);
 
     let target_base_name = format!("{}_{}", file_name, version);
 
     for file_name in &[dll_file, so_file] {
-        let source_path = Path::new(source_dir).join(file_name);
+        let mut source_path = Path::new(source_dir).join(file_name);
+        if let Some(source_file_name) = diff_source_name {
+            if file_name.contains("dll") {
+                continue;
+            }
+            source_path = Path::new(source_dir).join(format!("{}.so", source_file_name));
+        }
         if !source_path.exists() {
-            println!("File {} does not exist in the source directory", file_name);
+            println!("File {} does not exist in the source directory ({})", file_name, source_path.display());
             continue;
         }
 

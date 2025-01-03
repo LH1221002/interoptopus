@@ -1,0 +1,3 @@
+[alias]
+unity-build = "cargo build -vv --features build-script" # TODO: --release
+ndk-build = "ndk -t arm64-v8a -o ../target build -vv --release"

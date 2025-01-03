@@ -11,3 +11,11 @@ derive_builder = "0.20.2"
 heck = "0.5.0"
 log = "0.4.14"
 serde = "1.0.203"
+
+[profile.release]
+#lto = true
+#codegen-units = 1
+
+[profile.dev]
+# Use slightly better optimization by default, as examples otherwise seem laggy.
+opt-level = 1

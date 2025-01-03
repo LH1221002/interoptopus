@@ -1,5 +1,5 @@
 mod auto_version;
-use crate::auto_version::{copy_with_version, update_and_get_version};
+use crate::auto_version::{copy_with_version, get_version, update_and_get_version};
 use interoptopus::util::NamespaceMappings;
 use interoptopus::Interop;
 use interoptopus_backend_csharp::overloads::DotNet;
@@ -14,12 +14,20 @@ use rust_bindings::ffi_inventory;
 // to run both `cargo build` to produce the `.dll` and `cargo test`
 // to produce the bindings (since `cargo test` does not imply `cargo build`).
 const DLL_FILE: &str = "rust_bindings";
+const SO_FILE: &str = "librust_bindings";
 // TODO: Release version
 const DLL_SOURCE: &str = "../target/debug/"; // Won't work when build from global workspace
+const SO_SOURCE: &str = "../target/arm64-v8a/"; // Won't work when build from global workspace
 const DLL_DEST: &str = "C:/Users/luish/Rust/Assets/Plugins/";
+const SO_DEST: &str = "C:/Users/luish/Rust/Assets/Plugins/Android/arm64-v8a";
 const OUT_DIR: &str = "C:/Users/luish/Rust/Assets/InteropScripts";
 
 fn main() {
+    if std::env::var("CARGO_CFG_TARGET_OS").unwrap() == "android" {
+        android_build();    // Assuming we previously build normally for windows
+        return;
+    }
+
     let build_script_active = std::env::var("CARGO_FEATURE_BUILD_SCRIPT").is_ok();
 
     if !build_script_active {
@@ -33,7 +41,7 @@ fn main() {
     let lib_name = match update_and_get_version() {
         Ok(version) => {
             println!("Current version: {}", version);
-            copy_with_version(DLL_SOURCE, DLL_DEST, DLL_FILE, &version).unwrap_or_else(|e| {
+            copy_with_version(DLL_SOURCE, DLL_DEST, DLL_FILE, &version, None).unwrap_or_else(|e| {
                 eprintln!("Failed to copy files: {}", e);
                 "Failed to copy files".to_string()
             })
@@ -63,4 +71,20 @@ fn main() {
         // it here to simplify our example).
         .write_file(OUT_DIR.to_owned() + "/Interop.cs")
         .unwrap();
+}
+
+fn android_build() {
+    match get_version() {
+        Ok(version) => {
+            println!("Current version: {}", version);
+            copy_with_version(SO_SOURCE, SO_DEST, DLL_FILE, &version, Option::from(SO_FILE)).unwrap_or_else(|e| {
+                eprintln!("Failed to copy files: {}", e);
+                "Failed to copy files".to_string()
+            })
+        }
+        Err(e) => {
+            eprintln!("Failed to update version: {}", e);
+            "Failed to update version".to_string()
+        }
+    };
 }
