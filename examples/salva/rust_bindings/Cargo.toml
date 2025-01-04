@@ -21,8 +21,9 @@ git = "https://github.com/dimforge/salva.git"
 features = ["rapier", "sampling"]
 
 [profile.release]
-#lto = true
-#codegen-units = 1
+opt-level = 1
+lto = true
+codegen-units = 1
 
 [profile.dev]
 # Use slightly better optimization by default, as examples otherwise seem laggy.
