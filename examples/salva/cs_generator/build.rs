@@ -1,4 +1,7 @@
 mod auto_version;
+
+use std::thread;
+use std::time::Duration;
 use crate::auto_version::{copy_with_version, get_version, update_and_get_version};
 use interoptopus::util::NamespaceMappings;
 use interoptopus::Interop;
@@ -16,13 +19,15 @@ use rust_bindings::ffi_inventory;
 const DLL_FILE: &str = "rust_bindings";
 const SO_FILE: &str = "librust_bindings";
 // TODO: Release version
-const DLL_SOURCE: &str = "../target/debug/"; // Won't work when build from global workspace
+const DLL_SOURCE: &str = "../target/release/"; // Won't work when build from global workspace
 const SO_SOURCE: &str = "../target/arm64-v8a/"; // Won't work when build from global workspace
 const DLL_DEST: &str = "C:/Users/luish/Rust/Assets/Plugins/";
 const SO_DEST: &str = "C:/Users/luish/Rust/Assets/Plugins/Android/arm64-v8a";
 const OUT_DIR: &str = "C:/Users/luish/Rust/Assets/InteropScripts";
 
 fn main() {
+    println!("cargo:warning=PROFILE={}", std::env::var("PROFILE").unwrap());
+
     if std::env::var("CARGO_CFG_TARGET_OS").unwrap() == "android" {
         android_build();    // Assuming we previously build normally for windows
         return;

@@ -3,12 +3,13 @@ name = "cs_generator"
 version = "0.1.1"
 edition = "2021"
 publish = false
+links = "rust_bindings"
 
 [features]
 build-script = []
 
-[lib]
-crate-type = ["cdylib", "rlib"]
+#[lib]
+#crate-type = ["cdylib", "rlib"]
 
 [build-dependencies]
 interoptopus = { path = "../../../crates/core" }

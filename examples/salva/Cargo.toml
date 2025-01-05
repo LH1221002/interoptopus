@@ -21,3 +21,8 @@ debug-assertions = false
 [profile.dev]
 # Use slightly better optimization by default, as examples otherwise seem laggy.
 opt-level = 3
+
+[profile.release.build-override]
+opt-level = 3
+codegen-units = 1
+debug-assertions = false

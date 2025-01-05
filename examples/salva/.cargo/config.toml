@@ -1,0 +1,6 @@
+[alias]
+unity-build = "build -vv --release --features build-script --workspace --jobs=1"
+unity-build-dev = "build -vv --features build-script"
+#ndk-build = "ndk -t arm64-v8a -o ../target build -vv --release"
+unity-build1 = "build --release --workspace --exclude cs_generator"
+unity-build2 = "build -vv --release -p cs_generator --features build-script"

@@ -1,0 +1,18 @@
+# Makefile.toml in the root of your Cargo workspace
+# -----------------------------------------------
+[env]
+# This tells cargo-make to let sub-crates also extend this file if they need to.
+# (If you DON'T want sub-crates automatically seeing this file, remove this line.)
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+CARGO_MAKE_USE_WORKSPACE_PROFILE = false
+
+[tasks.build-unity]
+description = "Build everything except cs_generator, then build cs_generator."
+# We want to run these commands in the root, not in each crate, so disable workspace expansion:
+workspace = false
+
+# We'll just run two plain cargo commands in a single script block:
+script = '''
+cargo build --workspace --release --exclude cs_generator
+cargo build -v --release -p cs_generator --features build-script
+'''
