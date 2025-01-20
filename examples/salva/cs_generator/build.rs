@@ -91,5 +91,6 @@ fn android_build() {
             eprintln!("Failed to update version: {}", e);
             "Failed to update version".to_string()
         }
+
     };
 }

@@ -1,17 +1,22 @@
-use std::f32::consts::E;
 use crate::error::{Error, FFIError};
 use crate::fluid::Fluid;
 use crate::global_index::GLOBAL_FLUIDS;
 use crate::math::{Point3, Vec3};
 use interoptopus::patterns::slice::{FFISlice, FFISliceMut};
-use interoptopus::{ffi_service, ffi_service_ctor, ffi_service_method, ffi_type};
+use interoptopus::patterns::string::CStrPointer;
+use interoptopus::{callback, ffi_service, ffi_service_ctor, ffi_service_method, ffi_type};
 use rapier3d::dynamics::{RigidBodyBuilder, RigidBodySet};
 use rapier3d::geometry::{ColliderBuilder, ColliderSet};
 use rapier3d::math::Vector;
 use salva3d::integrations::rapier::ColliderSampling;
-use salva3d::object::interaction_groups::InteractionGroups;
+use salva3d::object::interaction_groups::{Group, InteractionGroups};
 use salva3d::object::Boundary;
 use salva3d::sampling::shape_surface_ray_sample;
+use std::f32::consts::E;
+use std::ffi::c_char;
+use std::fmt::format;
+
+callback!(UnityLogCallback(message: CStrPointer<'_>));
 
 #[ffi_type(opaque)]
 pub struct FluidsPipeline {
@@ -19,6 +24,7 @@ pub struct FluidsPipeline {
     colliders: rapier3d::geometry::ColliderSet,
     bodies: rapier3d::dynamics::RigidBodySet,
     fluid_handles: Vec<salva3d::object::FluidHandle>,
+    boundary_handles: Vec<salva3d::object::BoundaryHandle>,
 }
 
 #[ffi_service(error = "FFIError")]
@@ -28,26 +34,78 @@ impl FluidsPipeline {
         let mut pipeline = salva3d::integrations::rapier::FluidsPipeline::new(particle_radius, smoothing_factor);
 
         // Colliders and bodies placeholder from faucet3 example
-        let mut bodies = RigidBodySet::new();
-        let mut colliders = ColliderSet::new();
-        let ground_rad = 0.15;
-        let ground_handle = bodies.insert(RigidBodyBuilder::fixed().build());
-        let co = ColliderBuilder::ball(ground_rad).build();
-        let ball_samples = shape_surface_ray_sample(co.shape(), particle_radius).unwrap();
-        let co_handle = colliders.insert_with_parent(co, ground_handle, &mut bodies);
+        let bodies = RigidBodySet::new();
+        let colliders = ColliderSet::new();
 
-        let bo_handle = pipeline.liquid_world.add_boundary(Boundary::new(Vec::new(), InteractionGroups::default()));
-
-        pipeline
-            .coupling
-            .register_coupling(bo_handle, co_handle, ColliderSampling::StaticSampling(ball_samples));
+        pipeline.liquid_world.counters.enable();
 
         Ok(Self {
             pipeline,
             colliders,
             bodies,
             fluid_handles: vec![],
+            boundary_handles: vec![],
         })
+    }
+
+    pub fn add_test_boundary(&mut self) -> Result<(), Error> {
+        let ground_rad = 0.15;
+        // let ground_handle = self.bodies.insert(RigidBodyBuilder::fixed().build());
+        let co = ColliderBuilder::ball(ground_rad).build();
+        let ball_samples = shape_surface_ray_sample(co.shape(), self.pipeline.liquid_world.particle_radius()).unwrap();
+
+        let boundary = Boundary::new(ball_samples, InteractionGroups::default());
+        self.pipeline.liquid_world.add_boundary(boundary);
+
+        // let co_handle = self.colliders.insert_with_parent(co, ground_handle, &mut self.bodies);
+        //
+        // let bo_handle = self.pipeline.liquid_world.add_boundary(Boundary::new(Vec::new(), InteractionGroups::default()));
+        //
+        // self.pipeline
+        //     .coupling
+        //     .register_coupling(bo_handle, co_handle, ColliderSampling::StaticSampling(ball_samples));
+
+        Ok(())
+    }
+
+    pub fn add_test_boundary_get_positions(&mut self, mut out_positions: FFISliceMut<Point3>) -> Result<(), Error> {
+        let ground_rad = 0.15;
+        let ground_handle = self.bodies.insert(RigidBodyBuilder::fixed().build());
+        let co = ColliderBuilder::ball(ground_rad).build();
+        let ball_samples = shape_surface_ray_sample(co.shape(), self.pipeline.liquid_world.particle_radius()).unwrap();
+
+        for (i, p) in ball_samples.iter().enumerate() {
+            out_positions[i] = Point3::from_native(p);
+        }
+
+        // let boundary = Boundary::new(ball_samples, InteractionGroups::default());
+        // self.pipeline.liquid_world.add_boundary(boundary);
+
+        Ok(())
+    }
+
+    #[ffi_service_method(on_panic = "return_default")]
+    pub fn add_boundary(&mut self, particle_positions: FFISlice<Point3>) -> u32 {
+        let boundary = Boundary::new(particle_positions.iter().map(|p| p.into_native()).collect(), InteractionGroups::default());
+        let handle = self.pipeline.liquid_world.add_boundary(boundary);
+        self.boundary_handles.push(handle);
+        self.boundary_handles.len() as u32 - 1
+    }
+
+    pub fn update_boundary(&mut self, boundary_idx: u32, positions: FFISlice<Point3>) -> Result<(), Error> {
+        let handle = self.boundary_handles.get(boundary_idx as usize).ok_or(Error::Bad)?;
+        if let Some(boundary) = self.pipeline.liquid_world.boundaries_mut().get_mut(*handle) {
+            boundary.positions = positions.iter().map(|p| p.into_native()).collect();
+            // let native_velocities = if velocities.len() == positions.len() {
+            //     velocities.iter().map(|v| v.into_native()).collect::<Vec<_>>()
+            // } else {
+            //     vec![]
+            // };
+            // boundary.velocities = native_velocities;
+            Ok(())
+        } else {
+            Err(Error::Bad)
+        }
     }
 
     // pub fn add_fluid(&mut self, fluid_idx: u32) {
@@ -97,8 +155,8 @@ impl FluidsPipeline {
     #[ffi_service_method(on_panic = "return_default")]
     pub fn num_particles(&mut self, fluid_idx: u32) -> u32 {
         match self.get_fluid(fluid_idx) {
-            Ok(fluid) => {fluid.num_particles() as u32 }
-            Err(_) => { 0 }
+            Ok(fluid) => fluid.num_particles() as u32,
+            Err(_) => 0,
         }
     }
 
@@ -129,8 +187,6 @@ impl FluidsPipeline {
         }
     }
 
-
-
     // #[ffi_service_method(on_panic = "return_default")]
     pub fn step(
         &mut self,
@@ -145,6 +201,54 @@ impl FluidsPipeline {
 
         self.pipeline.step(&gravity.into_native(), dt, &self.colliders, &mut self.bodies);
         Ok(())
+    }
+
+    pub fn step_with_counters(&mut self, gravity: Vec3, dt: f32, log_callback: UnityLogCallback) -> Result<(), Error> {
+        self.pipeline.liquid_world.counters.reset();
+        self.step(gravity, dt)?;
+        let counters = self.pipeline.liquid_world.counters;
+        let message = format!(
+            "NSubsteps {:.3}, step_time {:.3}, custom {:.3}",
+            counters.nsubsteps,
+            counters.step_time.time(),
+            counters.custom.time()
+        );
+        self.call_log_callback(&message, &log_callback);
+
+        let stages_times = counters.stages;
+        let message = format!(
+            "collision_detection_time {:.3}, solver_time {:.3}",
+            stages_times.collision_detection_time.time(),
+            stages_times.solver_time.time()
+        );
+        self.call_log_callback(&message, &log_callback);
+
+        let collision_times = counters.cd;
+        let message = format!(
+            "NContacts {:.3}, boundary_update_time {:.3}, grid_insertion_time {:.3}, \
+        neighborhood_search_time  {:.3}, contact_sorting_time {:.3}",
+            collision_times.ncontacts,
+            collision_times.boundary_update_time.time(),
+            collision_times.grid_insertion_time.time(),
+            collision_times.neighborhood_search_time.time(),
+            collision_times.contact_sorting_time.time()
+        );
+        self.call_log_callback(&message, &log_callback);
+
+        let solver_times = counters.solver;
+        let message = format!(
+            "non_pressure_resolution_time {:.3}, pressure_resolution_time {:.3}",
+            solver_times.non_pressure_resolution_time.time(),
+            solver_times.pressure_resolution_time.time()
+        );
+        self.call_log_callback(&message, &log_callback);
+
+        Ok(())
+    }
+
+    fn call_log_callback(&mut self, message: &str, log_callback: &UnityLogCallback) {
+        let c_message = std::ffi::CString::new(message).expect("Failed to create CString");
+        log_callback.call(CStrPointer::from_cstr(&c_message));
     }
 
     // #[ffi_service_method(on_panic = "return_default")]
