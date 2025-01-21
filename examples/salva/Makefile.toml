@@ -16,3 +16,16 @@ script = '''
 cargo build --workspace --release --exclude cs_generator
 cargo build -v --release -p cs_generator --features build-script
 '''
+
+#ndk-build = "ndk -t arm64-v8a -o ../target build -vv --release"
+
+[tasks.build-mobile]
+description = "Build everything except cs_generator, then build cs_generator."
+# We want to run these commands in the root, not in each crate, so disable workspace expansion:
+workspace = false
+
+# We'll just run two plain cargo commands in a single script block:
+script = '''
+cargo ndk -t arm64-v8a -o ../target build --workspace --release --exclude cs_generator
+cargo ndk -t arm64-v8a -o ../target build -vv --release -p cs_generator --features build-script
+'''

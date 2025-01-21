@@ -20,7 +20,7 @@ const DLL_FILE: &str = "rust_bindings";
 const SO_FILE: &str = "librust_bindings";
 // TODO: Release version
 const DLL_SOURCE: &str = "../target/release/"; // Won't work when build from global workspace
-const SO_SOURCE: &str = "../target/arm64-v8a/"; // Won't work when build from global workspace
+const SO_SOURCE: &str = "../target/aarch64-linux-android/release/"; // Won't work when build from global workspace
 const DLL_DEST: &str = "C:/Users/luish/Rust/Assets/Plugins/";
 const SO_DEST: &str = "C:/Users/luish/Rust/Assets/Plugins/Android/arm64-v8a";
 const OUT_DIR: &str = "C:/Users/luish/Rust/Assets/InteropScripts";
